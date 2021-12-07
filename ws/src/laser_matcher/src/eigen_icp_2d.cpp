@@ -1,4 +1,4 @@
-#include "eigen_icp.h"
+#include "eigen_icp_2d.h"
 #include "Eigen/Geometry"
 #include "rotations.h"
 #include "Eigen/Cholesky"
@@ -7,36 +7,37 @@
 using namespace std;
 
 ICP::ICP(const ContainerType& fixed_,
-      const ContainerType& moving_,
-      int min_points_in_leaf,
-      const TransformType& X_):
-  _X(X_),
+         const ContainerType& moving_,
+         int min_points_in_leaf):
   _fixed(fixed_),
   _moving(moving_),
   _kd_tree(_fixed.begin(), _fixed.end(), min_points_in_leaf){
+  _correspondences.reserve(std::max(_fixed.size(), _moving.size()));
   
-    int max_size=std::max(_fixed.size(), _moving.size());
-    _correspondences.reserve(max_size);
-  }
-  
-void ICP::computeCorrespondences() {
-  _correspondences.clear();
-  for (const auto& m: _moving) {
-    Vector3f m_prime = _X*m;
-    Vector3f* f=_kd_tree.bestMatchFast(m_prime, _ball_radius);
-    if (!f)
-      continue;
-    _correspondences.push_back(PointPair(*f, m_prime));
-  }
 }
 
+void ICP::computeCorrespondences() {
+  int k=0;
+  _correspondences.resize(_moving.size());
+  for (const auto& m: _moving) {
+    const auto& mt=_X*m;
+    auto ft=_kd_tree.bestMatchFast(mt, _ball_radius);
+    if (! ft)
+      continue;
+    _correspondences[k]._fixed=*ft;
+    _correspondences[k]._moving=mt;
+    ++k;
+  }
+  _correspondences.resize(k);
+}
+ 
 
 void ICP::optimizeCorrespondences() {
-  Eigen::Matrix<float, 6, 6> H;
-  Eigen::Matrix<float, 6, 1> b;
+  Eigen::Matrix<float, 3, 3> H;
+  Eigen::Matrix<float, 3, 1> b;
   H.setZero();
   b.setZero();
-  Eigen::Matrix<float, 3, 6> J;
+  Eigen::Matrix<float, 2, 3> J;
   J.block<3,3>(0,0).setIdentity();
   _num_kernelized=0;
   _num_inliers=0;
@@ -44,11 +45,9 @@ void ICP::optimizeCorrespondences() {
   for (const auto& c: _correspondences) {
     const auto& f=c._fixed;
     const auto& m=c._moving;
-    J.block<3,3>(0,3) <<
-      0.f,   m.z(),    -m.y(),
-      -m.z(),      0,   m.x(),
-      m.y(),  -m.x(),   0;
-    Vector3f e=m-f;
+    J(0,2) = -m.y();
+    J(1,2) = m.x();
+    Vector2f e=m-f;
     float scale=1;
     float chi=e.squaredNorm();
     _chi2_sum+=chi;
@@ -62,34 +61,42 @@ void ICP::optimizeCorrespondences() {
     b.noalias()+= scale* J.transpose()*e;
   }
   _dx=H.ldlt().solve(-b);
-  Eigen::Isometry3f dX;
-  const Eigen::Matrix3f dR=Rx(_dx(3))*Ry(_dx(4))*Rz(_dx(5));
+  Eigen::Isometry2f dX;
+  const Eigen::Matrix2f dR=Rtheta(_dx(2));
   dX.setIdentity();
   dX.linear()=dR;
-  dX.translation()=_dx.block<3,1>(0,0);
+  dX.translation()=_dx.block<2,1>(0,0);
   _X=dX*_X;
 }
 
 void ICP::run(int max_iterations) {
   int current_iteration=0;
   while (current_iteration<max_iterations) {
-    cerr << "**************************************" << endl;
-    cerr << "Iteration: " << current_iteration;
-    cerr << " transform (before): " << endl;
-    cerr << _X.matrix() << endl;
     computeCorrespondences();
     optimizeCorrespondences();
+    draw(cout);
+    ++current_iteration;
+    cerr << "Iteration: " << current_iteration;
     cerr << " corr: " << numCorrespondences();
     cerr << " inl: " << numInliers();
     cerr << " ker: " << numKernelized();
     cerr << " chi: " << _chi2_sum << endl;
-    cerr << " transform (after): " << endl;
-    cerr << _X.matrix() << endl;
-    cerr << "**************************************" << endl << endl;
-    ++current_iteration;
-    
   }
 }
 
-
-
+void ICP::draw(std::ostream& os) {
+  os << "set size ratio -1" << endl;
+  os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\", '-' w l lw 1 title \"correspondences\" " << endl;
+  for  (const auto& p: _fixed)
+    os << p.transpose() << endl;
+  os << "e" << endl;
+  for  (const auto& p: _moving)
+    os << (_X*p).transpose() << endl;
+  os << "e" << endl;
+  for (const auto& c: _correspondences) {
+    os << c._fixed.transpose() << endl;
+    os << c._moving.transpose() << endl;
+    os << endl;
+  }
+  os << "e" << endl;
+}

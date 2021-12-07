@@ -1,8 +1,0 @@
-1. install gnuplot
-sudo apt install gnuplot
-
-2. run
-./eigen_icp_2d_test <dx> <dy> <dth> <num_points> | gnuplot
-
-example
-$> ./eigen_icp_2d_test 1 1 0.1 100 | gnuplot
