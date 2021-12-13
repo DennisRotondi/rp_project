@@ -74,7 +74,7 @@ void ICP::run(int max_iterations) {
   while (current_iteration<max_iterations) {
     computeCorrespondences();
     optimizeCorrespondences();
-    draw(cout);
+    // draw(cout);
     ++current_iteration;
     cerr << "Iteration: " << current_iteration;
     cerr << " corr: " << numCorrespondences();
