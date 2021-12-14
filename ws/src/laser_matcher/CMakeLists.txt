@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 2.8.3)
 project(laser_matcher)
-
+set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 17)
 
 ## Find catkin macros and libraries
@@ -28,4 +28,4 @@ include_directories(
 
 add_executable(laser_matcher src/laser_matcher.cpp src/eigen_icp_2d.cpp)
 target_link_libraries(laser_matcher ${catkin_LIBRARIES})
-add_dependencies(laser_matcher laser_matcher)
+#add_dependencies(laser_matcher laser_matcher)

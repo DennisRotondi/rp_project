@@ -1,12 +1,12 @@
 #include "ros/ros.h"
 #include <vector>
+#include <iostream>
+#include <fstream>
 #include "eigen_icp_2d.h"
 #include "Eigen/Geometry"
 #include "Eigen/Cholesky"
 #include "sensor_msgs/LaserScan.h"
 #include "rotations.h"
-#include <iostream>
-#include <fstream>
 
 using Vector2fVector=std::vector<Eigen::Vector2f, Eigen::aligned_allocator<Eigen::Vector2f>>;
 using ContainerType=ICP::ContainerType;
@@ -24,25 +24,33 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
   float angle_max = scan.angle_max; 
   float angle_increment = scan.angle_increment;
   float size = (angle_max-angle_min)/angle_increment/sample_num;
+
+  std::cerr << size << std::endl;
+  std::cerr << angle_min << std::endl;
+  std::cerr << angle_max << std::endl;
+  std::cerr << angle_increment << std::endl;
   
-  if(!first_msg){
+  if(first_msg==0){
     first_msg=1; 
     old.reserve(size);
     niu.reserve(size);
-    cur = old; 
   }
   float line;
-  float angle;
-  for(int i=0; i<size; i+=sample_num){
+  float angle=angle_min;
+  for(int i=0; i<size; i+=1){
     line = scan.ranges[i];
-    angle = angle_min+angle_increment*i;
-    cur[i] = Eigen::Vector2f(line*cos(angle), line*sin(angle));
+    angle += angle_increment*sample_num;
+    if(first_msg==0)
+      old[i] = T0*Eigen::Vector2f(line*cos(angle), line*sin(angle));
+    else
+      niu[i] = T0*Eigen::Vector2f(line*cos(angle), line*sin(angle));
+    // std::cerr << cur[i] << std::endl;
   }
-  if(first_msg==0) return;
-  ICP icp(old, cur, 10);
-  icp.run(100);
-
-  // std::cerr << T0.translation() << std::endl;
+  
+  ICP icp(old, niu, 10);
+  icp.run(1);
+  T0=T0*icp.X();
+  std::cout << icp.X().matrix() << std::endl;
 }
 
 int main(int argc, char **argv) {  
@@ -54,4 +62,7 @@ int main(int argc, char **argv) {
   ros::Rate loop_rate(10);
   ros::Subscriber sub_lm = n.subscribe("/base_scan", 1000, matcher_cb);
   ros::spin();
+
+  // for(int i=0; i < 360; i++)
+  //   std::cerr << old[i]-niu[i] << std::endl;
 }
