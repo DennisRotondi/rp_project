@@ -11,7 +11,7 @@
 using Vector2fVector=std::vector<Eigen::Vector2f, Eigen::aligned_allocator<Eigen::Vector2f>>;
 using ContainerType=ICP::ContainerType;
 
-int first_msg=0;
+int num_msg=0;
 ContainerType old(360);
 ContainerType niu(360);
 float sample_num; //to get a sample every sample_num 
@@ -25,12 +25,12 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
   float angle_increment = scan.angle_increment;
   float size = (angle_max-angle_min)/angle_increment/sample_num;
 
-  std::cerr << size << std::endl;
-  std::cerr << angle_min << std::endl;
-  std::cerr << angle_max << std::endl;
-  std::cerr << angle_increment << std::endl;
-  std::cerr << "msg num" << first_msg << std::endl;
-  // if(first_msg==0){
+  // std::cerr << size << std::endl;
+  // std::cerr << angle_min << std::endl;
+  // std::cerr << angle_max << std::endl;
+  // std::cerr << angle_increment << std::endl;
+  std::cerr << "msg num" << num_msg << std::endl;
+  // if(num_msg==0){
   //   old.reserve(size);
   //   niu.reserve(size);
   // }
@@ -42,25 +42,26 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
     //if line > scan.maxrange etc
     float a = line*cos(angle);
     float b = line*sin(angle);
-    if(first_msg==0)
+    if(num_msg==0)
       old[i] = Eigen::Vector2f(a,b);
     else
-      niu[i] = T0*Eigen::Vector2f(a,b);
+      niu[i] = Eigen::Vector2f(a,b);
       // std::cerr << "old " << old[i](1) << " " << old[i](2) << std::endl;
       // std::cerr << "niu " << a << " " << b << std::endl;
     // std::cerr << cur[i] << std::endl;
     
 
   }
-  if(first_msg==0) 
-    first_msg++;
-  else{
+   
+  if(num_msg!=0){
     ICP icp(old, niu, 10);
-    icp.run(1);
+    icp.run(5);
     T0=T0*icp.X();
-    std::cerr << icp.X().matrix() << std::endl;
-    first_msg++;
+    std::cerr << "Origin position" << std::endl;
+    std::cerr << T0.translation() << std::endl;
+    old=niu;
   }
+  num_msg++;
 }
 
 int main(int argc, char **argv) {  

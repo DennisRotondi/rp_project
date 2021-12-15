@@ -13,8 +13,8 @@ ICP::ICP(const ContainerType& fixed_,
   _moving(moving_),
   _kd_tree(_fixed.begin(), _fixed.end(), min_points_in_leaf){
   _correspondences.reserve(std::max(_fixed.size(), _moving.size()));
-  cerr << _moving.size() << endl;
-  cerr << _fixed.size() << endl;
+  // cerr << _moving.size() << endl;
+  // cerr << _fixed.size() << endl;
 }
 
 void ICP::computeCorrespondences() {
@@ -75,7 +75,7 @@ void ICP::run(int max_iterations) {
   while (current_iteration<max_iterations) {
     computeCorrespondences();
     optimizeCorrespondences();
-    // draw(cout);
+    draw(cout);
     ++current_iteration;
     cerr << "Iteration: " << current_iteration;
     cerr << " corr: " << numCorrespondences();
