@@ -77,7 +77,7 @@ void LASERM::run(int max_iterations) {
     computeCorrespondences();
     optimizeCorrespondences();
     //dr: relative draw of those two sets
-    if(_draw) draw(cout);
+    if(_draw==1) draw(cout);
     ++current_iteration;
     cerr << "Iteration: " << current_iteration;
     cerr << " corr: " << numCorrespondences();
@@ -89,8 +89,20 @@ void LASERM::run(int max_iterations) {
 
 void LASERM::draw(std::ostream& os) {
   os << "set size 1,1" << endl;
-  // os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\", '-' w l lw 1 title \"correspondences\" " << endl;
-  os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\" " << endl;
+  os << "set size 1,1" << endl;
+  os <<"set xzeroaxis"<< endl;
+  os <<"set xtics axis"<< endl;
+  os <<"set xrange [-15:15]"<< endl;
+  os <<"set arrow 1 from -15,0 to -15,0"<< endl;
+  os <<"set arrow 2 from  15,0 to  15,0"<< endl;
+  os <<"set yzeroaxis"<< endl;
+  os <<"set ytics axis"<< endl;
+  os <<"set yrange [-10:10]"<< endl;
+  os <<"set arrow 3 from 0,-10,0 to 0,-10"<< endl;
+  os <<"set arrow 4 from 0,10,0  to 0,10"<< endl;
+  os <<"set border 0"<< endl;
+  os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\", '-' w l lw 1 title \"correspondences\" " << endl;
+  // os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\" " << endl;
   for  (const auto& p: _fixed)
     os << (_TB*p).transpose() << endl;
   os << "e" << endl;
@@ -98,10 +110,10 @@ void LASERM::draw(std::ostream& os) {
     os << (_TB*_X*p).transpose() << endl;
   os << "e" << endl;
   // uncomment only if you have a lot of ram or you want to test slowly
-  // for (const auto& c: _correspondences) {
-  //   os << c._fixed.transpose() << endl;
-  //   os << c._moving.transpose() << endl;
-  //   os << endl;
-  // }
-  // os << "e" << endl;
+  for (const auto& c: _correspondences) {
+    os << (_TB*c._fixed).transpose() << endl;
+    os << (_TB*_X*c._moving).transpose() << endl;
+    os << endl;
+  }
+  os << "e" << endl;
 }

@@ -120,4 +120,5 @@ protected:
   PointType _mean, _normal;
   IteratorType _begin, _end;
   PtrType _left, _right;
+  int _size;
 };

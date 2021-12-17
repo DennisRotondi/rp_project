@@ -19,14 +19,16 @@
 
 // using Vector2fVector=std::vector<Eigen::Vector2f, Eigen::aligned_allocator<Eigen::Vector2f>>;
 using ContainerType=LASERM::ContainerType;
-using std::cerr; using std::endl;
+using std::cerr; using std::cout; using std::endl;
 
 std::unique_ptr<LASERM> laser_matcher;
 ros::Publisher pub_2dpose;
 Eigen::Isometry2f TB;
 int num_msg=0;
 int draw; //variable if you want to draw points for gnuplot, use as debugger
-float sample_num=1; //to get a sample every sample_num 
+int tf_send; //variable if you want to send tf computed and not only 2dpose
+
+float sample_num=2; //to get a sample every sample_num, if you decrease it, increase number of _min_points_in_leaf to avoid segfault.
 // INPUT: laserscan, output pose2d and tf map->baselink 
 void matcher_cb(const sensor_msgs::LaserScan &scan) {
   
@@ -71,9 +73,9 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
     laser_matcher->resizeNiu(size);
   }
   //sometimes the creation of kdtree goes in segfault
-  cerr << "check seg" << endl;
+  // cerr << "check seg" << endl;
   laser_matcher->run(1);
-  cerr << "done check" << endl;
+  // cerr << "done check" << endl;
   laser_matcher->updateTB();
 
   auto tb = laser_matcher->TB();
@@ -84,31 +86,53 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
   pose_msg->y = tb.translation()(1);
   pose_msg->theta = Eigen::Rotation2Df(tb.rotation()).angle();
   pub_2dpose.publish(pose_msg);
-  //update transform, could be a function used every x msgs.
-  tf2_ros::TransformBroadcaster br;
-  geometry_msgs::TransformStamped transformStamped;
-  transformStamped.header.stamp = ros::Time::now();
-  transformStamped.header.frame_id = "map";
-  transformStamped.child_frame_id = "base_link";
-  transformStamped.transform.translation.x = pose_msg->x;
-  transformStamped.transform.translation.y = pose_msg->y;
-  transformStamped.transform.translation.z = 0.0;
-  tf2::Quaternion q;
-  q.setRPY(0, 0, pose_msg->theta);
-  transformStamped.transform.rotation.x = q.x();
-  transformStamped.transform.rotation.y = q.y();
-  transformStamped.transform.rotation.z = q.z();
-  transformStamped.transform.rotation.w = q.w();
-  br.sendTransform(transformStamped);
+  //update transform, should use a parameter to print or not, a lot of warning if using a bag because of time http://wiki.ros.org/tf/Errors%20explained
+  if(tf_send){
+    tf2_ros::TransformBroadcaster br;
+    geometry_msgs::TransformStamped transformStamped;
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = "map";
+    transformStamped.child_frame_id = "base_link";
+    transformStamped.transform.translation.x = pose_msg->x;
+    transformStamped.transform.translation.y = pose_msg->y;
+    transformStamped.transform.translation.z = 0.0;
+    tf2::Quaternion q;
+    q.setRPY(0, 0, pose_msg->theta);
+    transformStamped.transform.rotation.x = q.x();
+    transformStamped.transform.rotation.y = q.y();
+    transformStamped.transform.rotation.z = q.z();
+    transformStamped.transform.rotation.w = q.w();
+    br.sendTransform(transformStamped);
+  }
+  //origin plot
+  if(draw == 0){
+    cout << "set size 1,1" << endl;
+    cout <<"set xzeroaxis"<< endl;
+    cout <<"set xtics axis"<< endl;
+    cout <<"set xrange [-15:15]"<< endl;
+    cout <<"set arrow 1 from -15,0 to -15,0"<< endl;
+    cout <<"set arrow 2 from  15,0 to  15,0"<< endl;
+    cout <<"set yzeroaxis"<< endl;
+    cout <<"set ytics axis"<< endl;
+    cout <<"set yrange [-10:10]"<< endl;
+    cout <<"set arrow 3 from 0,-10,0 to 0,-10"<< endl;
+    cout <<"set arrow 4 from 0,10,0  to 0,10"<< endl;
+    cout <<"set border 0"<< endl;
+    cout << "plot '-' w p ps 2" << endl;
+    cout << tb.translation().transpose() << endl;
+    cout << "e" << endl;
+  }
   
 }
 
 int main(int argc, char **argv) {  
-  if (argc<2) {
-    cerr << "usage: " << argv[0] << " draw";
+  if (argc<3) {
+    cerr << "usage: " << argv[0] << " draw tf_send";
     return -1;
   }
   draw=atof(argv[1]);
+  tf_send=atof(argv[2]);
+
   ros::init(argc, argv, "laser_matcher");
   ros::NodeHandle n;
   ros::Rate loop_rate(10);
@@ -121,14 +145,11 @@ int main(int argc, char **argv) {
   //to get the initial map->base_link transform
   if (tfBuffer.canTransform("map", "base_link", ros::Time(0))) {
     transformStamped = tfBuffer.lookupTransform("map", "base_link", ros::Time(0));
-    // Eigen::Isometry3f test();
     tf2::Quaternion quat;
     tf2::convert(transformStamped.transform.rotation , quat);
     tf2::Matrix3x3 m(quat);
     double roll, pitch, yaw;
     m.getRPY(roll, pitch, yaw);
-    // tf::Matrix3x3 mat(quat);
-    // auto euler = q.eulerAngles(0, 1, 2);
     auto tr = transformStamped.transform.translation;
     TB.linear()=Rtheta(yaw);
     TB.translation()=Vector2f(tr.x, tr.y);
