@@ -26,6 +26,6 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(laser_matcher src/laser_matcher.cpp src/eigen_icp_2d.cpp)
+add_executable(laser_matcher src/laser_matcher.cpp src/eigen_laserm_2d.cpp)
 target_link_libraries(laser_matcher ${catkin_LIBRARIES})
 #add_dependencies(laser_matcher laser_matcher)

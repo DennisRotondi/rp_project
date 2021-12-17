@@ -1,23 +1,22 @@
-#include "eigen_icp_2d.h"
+#include "eigen_laserm_2d.h"
 #include "Eigen/Geometry"
-#include "rotations.h"
 #include "Eigen/Cholesky"
+#include "rotations.h"
 #include <iostream>
+#include <fstream>
 
 using namespace std;
-
-ICP::ICP(const ContainerType& fixed_,
-         const ContainerType& moving_,
-         int min_points_in_leaf):
-  _fixed(fixed_),
-  _moving(moving_),
-  _kd_tree(_fixed.begin(), _fixed.end(), min_points_in_leaf){
+using ContainerType = std::vector<Vector2f, Eigen::aligned_allocator<Vector2f> >;
+using TreeNodeType = TreeNode_<typename ContainerType::iterator>;
+LASERM::LASERM(const int& size,
+         int min_points_in_leaf):  _fixed(size),
+  _moving(size),_kd_tree(_fixed.begin(),_fixed.end(), min_points_in_leaf){
   _correspondences.reserve(std::max(_fixed.size(), _moving.size()));
-  // cerr << _moving.size() << endl;
-  // cerr << _fixed.size() << endl;
+  cerr << "done" << _fixed.size() << endl;  
+
 }
 
-void ICP::computeCorrespondences() {
+void LASERM::computeCorrespondences() {
   int k=0;
   _correspondences.resize(_moving.size());
   for (const auto& m: _moving) {
@@ -33,7 +32,7 @@ void ICP::computeCorrespondences() {
 }
  
 
-void ICP::optimizeCorrespondences() {
+void LASERM::optimizeCorrespondences() {
   Eigen::Matrix<float, 3, 3> H;
   Eigen::Matrix<float, 3, 1> b;
   H.setZero();
@@ -70,12 +69,13 @@ void ICP::optimizeCorrespondences() {
   _X=dX*_X;
 }
 
-void ICP::run(int max_iterations) {
+void LASERM::run(int max_iterations) {
   int current_iteration=0;
   while (current_iteration<max_iterations) {
     computeCorrespondences();
     optimizeCorrespondences();
-    draw(cout);
+    //dr: relative draw of those two sets
+    //draw(cout);
     ++current_iteration;
     cerr << "Iteration: " << current_iteration;
     cerr << " corr: " << numCorrespondences();
@@ -85,8 +85,8 @@ void ICP::run(int max_iterations) {
   }
 }
 
-void ICP::draw(std::ostream& os) {
-  os << "set size ratio -1" << endl;
+void LASERM::draw(std::ostream& os) {
+  os << "set size 1,1" << endl;
   os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\", '-' w l lw 1 title \"correspondences\" " << endl;
   for  (const auto& p: _fixed)
     os << p.transpose() << endl;
