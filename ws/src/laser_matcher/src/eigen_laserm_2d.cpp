@@ -92,10 +92,10 @@ void LASERM::draw(std::ostream& os) {
   // os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\", '-' w l lw 1 title \"correspondences\" " << endl;
   os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\" " << endl;
   for  (const auto& p: _fixed)
-    os << p.transpose() << endl;
+    os << (_TB*p).transpose() << endl;
   os << "e" << endl;
   for  (const auto& p: _moving)
-    os << (_X*p).transpose() << endl;
+    os << (_TB*_X*p).transpose() << endl;
   os << "e" << endl;
   // uncomment only if you have a lot of ram or you want to test slowly
   // for (const auto& c: _correspondences) {
