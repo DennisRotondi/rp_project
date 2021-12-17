@@ -25,7 +25,7 @@ public:
   using ContainerType = std::vector<Vector2f, Eigen::aligned_allocator<Vector2f> >;
 
   LASERM(const int& size,
-         int min_points_in_leaf, const int& draw);
+         int min_points_in_leaf, Eigen::Isometry2f TB_,const int& draw);
 
   void computeCorrespondences();
   

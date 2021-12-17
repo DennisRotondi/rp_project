@@ -9,6 +9,10 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  std_msgs   
+  geometry_msgs
+  tf
+  tf2
 )
 
 catkin_package(

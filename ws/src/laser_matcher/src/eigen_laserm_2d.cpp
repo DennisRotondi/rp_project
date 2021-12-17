@@ -9,8 +9,9 @@ using namespace std;
 using ContainerType = std::vector<Vector2f, Eigen::aligned_allocator<Vector2f> >;
 using TreeNodeType = TreeNode_<typename ContainerType::iterator>;
 LASERM::LASERM(const int& size,
-         int min_points_in_leaf, const int& draw): _fixed(size),_moving(size), 
-         _min_points_in_leaf(min_points_in_leaf), _draw(draw){
+         int min_points_in_leaf, Eigen::Isometry2f TB_,const int& draw): 
+         _fixed(size),_moving(size), 
+         _min_points_in_leaf(min_points_in_leaf), _TB(TB_),_draw(draw){
   _correspondences.reserve(std::max(_fixed.size(), _moving.size()));
 }
 
