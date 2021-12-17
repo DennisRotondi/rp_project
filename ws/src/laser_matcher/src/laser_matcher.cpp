@@ -70,6 +70,7 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
     // cerr << "resizing" << endl;
     laser_matcher->resizeNiu(size);
   }
+  //sometimes the creation of kdtree goes in segfault
   cerr << "check seg" << endl;
   laser_matcher->run(1);
   cerr << "done check" << endl;
@@ -83,7 +84,7 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
   pose_msg->y = tb.translation()(1);
   pose_msg->theta = Eigen::Rotation2Df(tb.rotation()).angle();
   pub_2dpose.publish(pose_msg);
-  //update transform
+  //update transform, could be a function used every x msgs.
   tf2_ros::TransformBroadcaster br;
   geometry_msgs::TransformStamped transformStamped;
   transformStamped.header.stamp = ros::Time::now();
@@ -117,7 +118,7 @@ int main(int argc, char **argv) {
   tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener(tfBuffer);
   geometry_msgs::TransformStamped transformStamped;
-
+  //to get the initial map->base_link transform
   if (tfBuffer.canTransform("map", "base_link", ros::Time(0))) {
     transformStamped = tfBuffer.lookupTransform("map", "base_link", ros::Time(0));
     // Eigen::Isometry3f test();
@@ -136,6 +137,5 @@ int main(int argc, char **argv) {
     TB=Eigen::Isometry2f::Identity();
   }
   ros::spin();
+  ros::shutdown();
 }
-
-
