@@ -25,7 +25,7 @@ public:
   using ContainerType = std::vector<Vector2f, Eigen::aligned_allocator<Vector2f> >;
 
   LASERM(const int& size,
-         int min_points_in_leaf);
+         int min_points_in_leaf, const int& draw);
 
   void computeCorrespondences();
   
@@ -57,18 +57,16 @@ public:
     else
       _fixed[idx]=value;
   }
-
   //dr:end
-
 
   inline int numCorrespondences() const {return _correspondences.size();}
   inline int numKernelized() const {return _num_kernelized;}
   inline int numInliers() const {return _num_inliers;}
   inline const Eigen::Matrix<float, 3,1>& dx() const {return _dx;}
- 
+  
+
 protected:
   using TreeNodeType = TreeNode_<typename ContainerType::iterator>;
-  
   ContainerType _fixed;
   ContainerType _moving;
   Eigen::Isometry2f _X=Eigen::Isometry2f::Identity();
@@ -76,6 +74,7 @@ protected:
   Eigen::Isometry2f _TB=Eigen::Isometry2f::Identity();
   std::unique_ptr<TreeNodeType> _kd_tree;
   int _min_points_in_leaf;
+  int _draw;
   float _ball_radius=10.f;
   float _kernel_chi2 = 1.f;
   float _chi2_sum=0;

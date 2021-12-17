@@ -9,8 +9,8 @@ using namespace std;
 using ContainerType = std::vector<Vector2f, Eigen::aligned_allocator<Vector2f> >;
 using TreeNodeType = TreeNode_<typename ContainerType::iterator>;
 LASERM::LASERM(const int& size,
-         int min_points_in_leaf): _fixed(size),_moving(size), 
-         _min_points_in_leaf(min_points_in_leaf){
+         int min_points_in_leaf, const int& draw): _fixed(size),_moving(size), 
+         _min_points_in_leaf(min_points_in_leaf), _draw(draw){
   _correspondences.reserve(std::max(_fixed.size(), _moving.size()));
 }
 
@@ -69,13 +69,14 @@ void LASERM::optimizeCorrespondences() {
 
 void LASERM::run(int max_iterations) {
   //dr: create now kd_tree and not during construction, otherwise nothing works
+  _kd_tree.reset(); //dr: reset the pointer
   _kd_tree = std::unique_ptr<TreeNodeType>(new TreeNodeType(_fixed.begin(), _fixed.end(), _min_points_in_leaf));
   int current_iteration=0;
   while (current_iteration<max_iterations) {
     computeCorrespondences();
     optimizeCorrespondences();
     //dr: relative draw of those two sets
-    draw(cout);
+    if(_draw) draw(cout);
     ++current_iteration;
     cerr << "Iteration: " << current_iteration;
     cerr << " corr: " << numCorrespondences();
@@ -95,6 +96,7 @@ void LASERM::draw(std::ostream& os) {
   for  (const auto& p: _moving)
     os << (_X*p).transpose() << endl;
   os << "e" << endl;
+  // uncomment only if you have a lot of ram or you want to test slowly
   // for (const auto& c: _correspondences) {
   //   os << c._fixed.transpose() << endl;
   //   os << c._moving.transpose() << endl;
