@@ -3,7 +3,6 @@
 #include "eigen_covariance.h"
 #include "brute_force_search.h"
 
-
 template <typename IteratorType_>
 class TreeNode_ {
 public:
@@ -26,6 +25,7 @@ public:
     _end(end_)
   {
     int num_points=std::distance(_begin, _end);
+    // std::cerr << num_points << std::endl;
     if (num_points < max_points_in_leaf)
       return;
     CovarianceType cov;

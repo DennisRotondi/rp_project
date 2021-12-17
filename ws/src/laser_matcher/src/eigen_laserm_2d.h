@@ -25,7 +25,7 @@ public:
   using ContainerType = std::vector<Vector2f, Eigen::aligned_allocator<Vector2f> >;
 
   LASERM(const int& size,
-      int min_points_in_leaf);
+         int min_points_in_leaf);
 
   void computeCorrespondences();
   
@@ -49,8 +49,9 @@ public:
   ContainerType& old()  {return _fixed;}
   const ContainerType& niu() const {return _moving;}
   ContainerType& niu()  {return _moving;}
+  void resizeNiu(int size){_moving.resize(size);}
   void updateOld(){_fixed.swap(_moving);} //dr: swap is performed in constant time
-  void setSet(const int& id, const int& idx, Eigen::Vector2f value){
+  void setSet(const int id, const int idx, Eigen::Vector2f value){
     if(id)
       _moving[idx]=value;
     else
@@ -73,7 +74,8 @@ protected:
   Eigen::Isometry2f _X=Eigen::Isometry2f::Identity();
   //dr: The pose of the base frame, in some fixed (world) frame. To be precise we need also to get the base_link → laser to bring from laser frame to base frame the computed _X, for this program just considered both with the same origin.
   Eigen::Isometry2f _TB=Eigen::Isometry2f::Identity();
-  TreeNodeType _kd_tree;
+  std::unique_ptr<TreeNodeType> _kd_tree;
+  int _min_points_in_leaf;
   float _ball_radius=10.f;
   float _kernel_chi2 = 1.f;
   float _chi2_sum=0;

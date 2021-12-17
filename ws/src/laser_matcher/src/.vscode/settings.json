@@ -59,6 +59,7 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "bit": "cpp",
-        "geometry": "cpp"
+        "geometry": "cpp",
+        "brute_force_search.h": "c"
     }
 }

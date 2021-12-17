@@ -1,7 +1,7 @@
 #include "eigen_laserm_2d.h"
 #include "Eigen/Geometry"
-#include "Eigen/Cholesky"
 #include "rotations.h"
+#include "Eigen/Cholesky"
 #include <iostream>
 #include <fstream>
 
@@ -9,11 +9,9 @@ using namespace std;
 using ContainerType = std::vector<Vector2f, Eigen::aligned_allocator<Vector2f> >;
 using TreeNodeType = TreeNode_<typename ContainerType::iterator>;
 LASERM::LASERM(const int& size,
-         int min_points_in_leaf):  _fixed(size),
-  _moving(size),_kd_tree(_fixed.begin(),_fixed.end(), min_points_in_leaf){
+         int min_points_in_leaf): _fixed(size),_moving(size), 
+         _min_points_in_leaf(min_points_in_leaf){
   _correspondences.reserve(std::max(_fixed.size(), _moving.size()));
-  cerr << "done" << _fixed.size() << endl;  
-
 }
 
 void LASERM::computeCorrespondences() {
@@ -21,7 +19,7 @@ void LASERM::computeCorrespondences() {
   _correspondences.resize(_moving.size());
   for (const auto& m: _moving) {
     const auto& mt=_X*m;
-    auto ft=_kd_tree.bestMatchFast(mt, _ball_radius);
+    auto ft=_kd_tree->bestMatchFast(mt, _ball_radius);
     if (! ft)
       continue;
     _correspondences[k]._fixed=*ft;
@@ -70,12 +68,14 @@ void LASERM::optimizeCorrespondences() {
 }
 
 void LASERM::run(int max_iterations) {
+  //dr: create now kd_tree and not during construction, otherwise nothing works
+  _kd_tree = std::unique_ptr<TreeNodeType>(new TreeNodeType(_fixed.begin(), _fixed.end(), _min_points_in_leaf));
   int current_iteration=0;
   while (current_iteration<max_iterations) {
     computeCorrespondences();
     optimizeCorrespondences();
     //dr: relative draw of those two sets
-    //draw(cout);
+    draw(cout);
     ++current_iteration;
     cerr << "Iteration: " << current_iteration;
     cerr << " corr: " << numCorrespondences();
@@ -87,17 +87,18 @@ void LASERM::run(int max_iterations) {
 
 void LASERM::draw(std::ostream& os) {
   os << "set size 1,1" << endl;
-  os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\", '-' w l lw 1 title \"correspondences\" " << endl;
+  // os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\", '-' w l lw 1 title \"correspondences\" " << endl;
+  os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\" " << endl;
   for  (const auto& p: _fixed)
     os << p.transpose() << endl;
   os << "e" << endl;
   for  (const auto& p: _moving)
     os << (_X*p).transpose() << endl;
   os << "e" << endl;
-  for (const auto& c: _correspondences) {
-    os << c._fixed.transpose() << endl;
-    os << c._moving.transpose() << endl;
-    os << endl;
-  }
-  os << "e" << endl;
+  // for (const auto& c: _correspondences) {
+  //   os << c._fixed.transpose() << endl;
+  //   os << c._moving.transpose() << endl;
+  //   os << endl;
+  // }
+  // os << "e" << endl;
 }

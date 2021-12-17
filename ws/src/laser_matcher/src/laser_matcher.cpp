@@ -31,34 +31,35 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
   cerr << "msg num" << num_msg << endl;
   if(num_msg==0) laser_matcher=std::unique_ptr<LASERM>(new LASERM(size,10));
   if(num_msg>1) laser_matcher->updateOld();
-  int id = num_msg==0;
+  int id = num_msg!=0;
 
   float line;
   float angle=angle_min;
+  int idx=0;
   for(int i=0; i<size; i+=1){
     line = scan.ranges[i*sample_num];
     angle += angle_increment*sample_num;
     if (line > scan.range_max || line < scan.range_min){
       // cerr << "values < range_min or > range_max should be discarded" << endl;
-      //size-- and resize moving is an option
+      size--;
     }
+    idx++;
     float a = line*cos(angle);
     float b = line*sin(angle);
-    laser_matcher->setSet(id,i, Eigen::Vector2f(a,b));
+    laser_matcher->setSet(id,idx, Eigen::Vector2f(a,b));
     // std::cerr << "old " << old[i](1) << " " << old[i](2) << std::endl;
     // std::cerr << "niu " << a << " " << b << std::endl;
     // std::cerr << cur[i] << std::endl;
   }
+  
   num_msg++;
   if(num_msg==1) return;
+  if(size!=laser_matcher->niu().size()){
+    laser_matcher->resizeNiu(size);
+  }
   laser_matcher->run(2);
   laser_matcher->updateTB();
   //update with publisher of pose 2d
-  //   T0=T0*icp.X();
-  //   std::cerr << "Laser position" << std::endl;
-  //   std::cerr << T0.translation() << std::endl;
-  //   old=niu;
-  // }
   
 }
 
