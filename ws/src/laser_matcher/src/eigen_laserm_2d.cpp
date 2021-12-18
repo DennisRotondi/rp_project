@@ -89,7 +89,6 @@ void LASERM::run(int max_iterations) {
 
 void LASERM::draw(std::ostream& os) {
   os << "set size 1,1" << endl;
-  os << "set size 1,1" << endl;
   os <<"set xzeroaxis"<< endl;
   os <<"set xtics axis"<< endl;
   os <<"set xrange [-15:15]"<< endl;
