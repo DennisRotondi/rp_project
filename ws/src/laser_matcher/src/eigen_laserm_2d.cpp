@@ -9,9 +9,9 @@ using namespace std;
 using ContainerType = std::vector<Vector2f, Eigen::aligned_allocator<Vector2f> >;
 using TreeNodeType = TreeNode_<typename ContainerType::iterator>;
 LASERM::LASERM(const int& size,
-         int min_points_in_leaf, Eigen::Isometry2f TB_,const int& draw): 
+         int min_points_in_leaf, Eigen::Isometry2f TMF_,Eigen::Isometry2f TBF_,const int& draw): 
          _fixed(size),_moving(size), 
-         _min_points_in_leaf(min_points_in_leaf), _TB(TB_),_draw(draw){
+         _min_points_in_leaf(min_points_in_leaf), _TMF(TMF_),_TBF(TBF_),_draw(draw){
   _correspondences.reserve(std::max(_fixed.size(), _moving.size()));
 }
 
@@ -103,15 +103,15 @@ void LASERM::draw(std::ostream& os) {
   os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\", '-' w l lw 1 title \"correspondences\" " << endl;
   // os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\" " << endl;
   for  (const auto& p: _fixed)
-    os << (_TB*p).transpose() << endl;
+    os << (_TBF*p).transpose() << endl;
   os << "e" << endl;
   for  (const auto& p: _moving)
-    os << (_TB*_X*p).transpose() << endl;
+    os << (_TBF*_X*p).transpose() << endl;
   os << "e" << endl;
   // uncomment only if you have a lot of ram or you want to test slowly
   for (const auto& c: _correspondences) {
-    os << (_TB*c._fixed).transpose() << endl;
-    os << (_TB*_X*c._moving).transpose() << endl;
+    os << (_TBF*c._fixed).transpose() << endl;
+    os << (_TBF*_X*c._moving).transpose() << endl;
     os << endl;
   }
   os << "e" << endl;

@@ -23,12 +23,32 @@ using std::cerr; using std::cout; using std::endl;
 
 std::unique_ptr<LASERM> laser_matcher;
 ros::Publisher pub_2dpose;
-Eigen::Isometry2f TB;
+tf2_ros::Buffer tfBuffer;
 int num_msg=0;
 int draw; //variable if you want to draw points for gnuplot, use as debugger
 int tf_send; //variable if you want to send tf computed and not only 2dpose
 
 float sample_num=2; //to get a sample every sample_num, if you decrease it, increase number of _min_points_in_leaf to avoid segfault.
+
+
+const Eigen::Isometry2f getTransform(const tf2_ros::Buffer& tfBuffer, const std::string& from, const std::string& to) {
+  Eigen::Isometry2f TB;
+  if(tfBuffer.canTransform(from, to, ros::Time(0))){
+    geometry_msgs::TransformStamped transformStamped=tfBuffer.lookupTransform(from, to, ros::Time(0));
+    tf2::Quaternion quat;
+    tf2::convert(transformStamped.transform.rotation , quat);
+    tf2::Matrix3x3 m(quat);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+    auto tr = transformStamped.transform.translation;
+    TB.linear()=Rtheta(yaw);
+    TB.translation()=Vector2f(tr.x, tr.y);
+  }
+  else
+    TB=Eigen::Isometry2f::Identity();
+  return TB;
+  }
+
 // INPUT: laserscan, output pose2d and tf map->baselink 
 void matcher_cb(const sensor_msgs::LaserScan &scan) {
   
@@ -43,7 +63,13 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
   // std::cerr << angle_increment << std::endl;
 
   cerr << "msg num" << num_msg << endl;
-  if(num_msg==0) laser_matcher=std::unique_ptr<LASERM>(new LASERM(size,10,TB,draw));
+  if(num_msg==0) {
+      
+    //to get the initial map->base_link transform to receive the right estimation from laser matcher
+    Eigen::Isometry2f TMB=getTransform(tfBuffer,"map","base_link");
+    Eigen::Isometry2f TBF=getTransform(tfBuffer,"base_link","laser_frame");
+    laser_matcher=std::unique_ptr<LASERM>(new LASERM(size,10,TMB*TBF,TBF,draw));
+  }
   if(num_msg>1) {
     laser_matcher->updateOld();
     laser_matcher->resizeNiu(size);}
@@ -76,7 +102,7 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
   // cerr << "check seg" << endl;
   laser_matcher->run(1);
   // cerr << "done check" << endl;
-  laser_matcher->updateTB();
+  laser_matcher->updateTMF();
 
   auto tb = laser_matcher->TB();
   //update pose 2d
@@ -88,16 +114,19 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
   pub_2dpose.publish(pose_msg);
   //update transform, should use a parameter to print or not, a lot of warning if using a bag because of time http://wiki.ros.org/tf/Errors%20explained
   if(tf_send){
-    tf2_ros::TransformBroadcaster br;
+    auto tbo= getTransform(tfBuffer, "odom", "base_link").inverse();
+    //tmo*tob=tmb => tmo=tmb*tob^-1
+    auto tmo = tb*tbo;
+    static tf2_ros::TransformBroadcaster br;
     geometry_msgs::TransformStamped transformStamped;
     transformStamped.header.stamp = ros::Time::now();
     transformStamped.header.frame_id = "map";
-    transformStamped.child_frame_id = "base_link";
-    transformStamped.transform.translation.x = pose_msg->x;
-    transformStamped.transform.translation.y = pose_msg->y;
+    transformStamped.child_frame_id = "odom";
+    transformStamped.transform.translation.x = tmo.translation()(0);
+    transformStamped.transform.translation.y = tmo.translation()(1);
     transformStamped.transform.translation.z = 0.0;
     tf2::Quaternion q;
-    q.setRPY(0, 0, pose_msg->theta);
+    q.setRPY(0, 0, Eigen::Rotation2Df(tmo.rotation()).angle());
     transformStamped.transform.rotation.x = q.x();
     transformStamped.transform.rotation.y = q.y();
     transformStamped.transform.rotation.z = q.z();
@@ -127,7 +156,7 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
 
 int main(int argc, char **argv) {  
   if (argc<3) {
-    cerr << "usage: " << argv[0] << " draw tf_send";
+    cerr << "usage: " << argv[0] << " draw tf_send" << endl;
     return -1;
   }
   draw=atof(argv[1]);
@@ -137,26 +166,9 @@ int main(int argc, char **argv) {
   ros::NodeHandle n;
   ros::Rate loop_rate(10);
   pub_2dpose = n.advertise<geometry_msgs::Pose2D>("/pose2D", 1000);
-  ros::Subscriber sub_lm = n.subscribe("/base_scan", 1000, matcher_cb);
-
-  tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener(tfBuffer);
-  geometry_msgs::TransformStamped transformStamped;
-  //to get the initial map->base_link transform
-  if (tfBuffer.canTransform("map", "base_link", ros::Time(0))) {
-    transformStamped = tfBuffer.lookupTransform("map", "base_link", ros::Time(0));
-    tf2::Quaternion quat;
-    tf2::convert(transformStamped.transform.rotation , quat);
-    tf2::Matrix3x3 m(quat);
-    double roll, pitch, yaw;
-    m.getRPY(roll, pitch, yaw);
-    auto tr = transformStamped.transform.translation;
-    TB.linear()=Rtheta(yaw);
-    TB.translation()=Vector2f(tr.x, tr.y);
-  }
-  else{
-    TB=Eigen::Isometry2f::Identity();
-  }
+  ros::Subscriber sub_lm = n.subscribe("/base_scan", 1000, matcher_cb);
+  // transformStamped = tfBuffer.lookupTransform("map", "base_link", ros::Time(0));
   ros::spin();
   ros::shutdown();
 }

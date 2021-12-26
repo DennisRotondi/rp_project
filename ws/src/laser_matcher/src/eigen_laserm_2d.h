@@ -25,7 +25,7 @@ public:
   using ContainerType = std::vector<Vector2f, Eigen::aligned_allocator<Vector2f> >;
 
   LASERM(const int& size,
-         int min_points_in_leaf, Eigen::Isometry2f TB_,const int& draw);
+         int min_points_in_leaf, Eigen::Isometry2f TMF_,Eigen::Isometry2f TBF_,const int& draw);
 
   void computeCorrespondences();
   
@@ -41,10 +41,9 @@ public:
   const Eigen::Isometry2f& X() const {return _X;}
   Eigen::Isometry2f& X()  {return _X;}
 
-  //dr: The pose of the base frame, in some fixed (world) frame.
-  const Eigen::Isometry2f& TB() const {return _TB;}
-  Eigen::Isometry2f& TB()  {return _TB;}
-  void updateTB() {_TB=_TB*_X;};
+  //dr: The pose of the base_like frame wrt map frame.
+  Eigen::Isometry2f TB() const {return _TMF*(_TBF.inverse());}
+  void updateTMF() {_TMF=_TMF*_X;};
   const ContainerType& old() const {return _fixed;}
   ContainerType& old()  {return _fixed;}
   const ContainerType& niu() const {return _moving;}
@@ -70,8 +69,10 @@ protected:
   ContainerType _fixed;
   ContainerType _moving;
   Eigen::Isometry2f _X=Eigen::Isometry2f::Identity();
-  //dr: The pose of the base frame, in some fixed (world) frame. To be precise we need also to get the base_link → laser to bring from laser frame to base frame the computed _X, for this program just considered both with the same origin.
-  Eigen::Isometry2f _TB=Eigen::Isometry2f::Identity();
+  //dr: The pose of the laser_frame wrt base_link
+  Eigen::Isometry2f _TBF;
+  //dr: The pose of the laser_frame wrt map.
+  Eigen::Isometry2f _TMF;
   std::unique_ptr<TreeNodeType> _kd_tree;
   int _min_points_in_leaf;
   int _draw;
