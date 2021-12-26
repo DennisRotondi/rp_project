@@ -43,6 +43,7 @@ const Eigen::Isometry2f getTransform(const tf2_ros::Buffer& tfBuffer, const std:
     auto tr = transformStamped.transform.translation;
     TB.linear()=Rtheta(yaw);
     TB.translation()=Vector2f(tr.x, tr.y);
+    // cerr << "out" << endl;
   }
   else
     TB=Eigen::Isometry2f::Identity();
@@ -64,7 +65,6 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
 
   cerr << "msg num" << num_msg << endl;
   if(num_msg==0) {
-      
     //to get the initial map->base_link transform to receive the right estimation from laser matcher
     Eigen::Isometry2f TMB=getTransform(tfBuffer,"map","base_link");
     Eigen::Isometry2f TBF=getTransform(tfBuffer,"base_link","laser_frame");
