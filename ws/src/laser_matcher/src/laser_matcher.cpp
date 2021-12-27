@@ -157,7 +157,6 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
 int main(int argc, char **argv) {  
   ros::init(argc, argv, "laser_matcher");
   ros::NodeHandle n("~");
-  ros::Rate loop_rate(10);
   n.getParam("draw", draw);
   n.getParam("tfsend", tf_send);
   pub_2dpose = n.advertise<geometry_msgs::Pose2D>("/pose2D", 1000);
