@@ -155,16 +155,11 @@ void matcher_cb(const sensor_msgs::LaserScan &scan) {
 }
 
 int main(int argc, char **argv) {  
-  if (argc<3) {
-    cerr << "usage: " << argv[0] << " draw tf_send" << endl;
-    return -1;
-  }
-  draw=atof(argv[1]);
-  tf_send=atof(argv[2]);
-
   ros::init(argc, argv, "laser_matcher");
-  ros::NodeHandle n;
+  ros::NodeHandle n("~");
   ros::Rate loop_rate(10);
+  n.getParam("draw", draw);
+  n.getParam("tfsend", tf_send);
   pub_2dpose = n.advertise<geometry_msgs::Pose2D>("/pose2D", 1000);
   tf2_ros::TransformListener tfListener(tfBuffer);
   ros::Subscriber sub_lm = n.subscribe("/base_scan", 1000, matcher_cb);
