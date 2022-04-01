@@ -76,7 +76,7 @@ protected:
   std::unique_ptr<TreeNodeType> _kd_tree;
   int _min_points_in_leaf;
   int _draw;
-  float _ball_radius=10.f;
+  float _ball_radius = 0.5f;
   float _kernel_chi2 = 1.f;
   float _chi2_sum=0;
 

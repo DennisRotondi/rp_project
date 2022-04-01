@@ -66,12 +66,15 @@ void LASERM::optimizeCorrespondences() {
   dX.linear()=dR;
   dX.translation()=_dx.block<2,1>(0,0);
   _X=dX*_X;
+  cerr << "_X computed" << endl;
+  cerr << _X.matrix() << endl;
 }
 
 void LASERM::run(int max_iterations) {
   //dr: create now kd_tree and not during construction, otherwise nothing works
   _kd_tree.reset(); //dr: reset the pointer
   _kd_tree = std::unique_ptr<TreeNodeType>(new TreeNodeType(_fixed.begin(), _fixed.end(), _min_points_in_leaf));
+  _X=Eigen::Isometry2f::Identity();
   int current_iteration=0;
   while (current_iteration<max_iterations) {
     computeCorrespondences();
@@ -101,17 +104,15 @@ void LASERM::draw(std::ostream& os) {
   os <<"set arrow 4 from 0,10,0  to 0,10"<< endl;
   os <<"set border 0"<< endl;
   os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\", '-' w l lw 1 title \"correspondences\" " << endl;
-  // os << "plot '-' w p ps 2 title \"fixed\", '-' w p ps 2 title \"moving\" " << endl;
   for  (const auto& p: _fixed)
-    os << (_TBF*p).transpose() << endl;
+    os << (_TMF*p).transpose() << endl;
   os << "e" << endl;
   for  (const auto& p: _moving)
-    os << (_TBF*_X*p).transpose() << endl;
+    os << (_TMF*_X*p).transpose() << endl;
   os << "e" << endl;
-  // uncomment only if you have a lot of ram or you want to test slowly
   for (const auto& c: _correspondences) {
-    os << (_TBF*c._fixed).transpose() << endl;
-    os << (_TBF*_X*c._moving).transpose() << endl;
+    os << (_TMF*c._fixed).transpose() << endl;
+    os << (_TMF*_X*c._moving).transpose() << endl;
     os << endl;
   }
   os << "e" << endl;
